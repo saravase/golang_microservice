@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"golang_microservice/handlers"
+	"golang_microservice/plant-api/handlers"
+
 	"log"
 	"net/http"
 	"os"
@@ -13,13 +14,11 @@ import (
 func main() {
 
 	logger := log.New(os.Stdout, "product-plant-api", log.LstdFlags)
-	helloHandler := handlers.NewHello(logger)
-	goodbyeHandler := handlers.NewGoodbye(logger)
+	plantsHandler := handlers.NewPlants(logger)
 
 	//Create Own serveMux
 	serveMux := http.NewServeMux()
-	serveMux.Handle("/", helloHandler)
-	serveMux.Handle("/goodbye", goodbyeHandler)
+	serveMux.Handle("/", plantsHandler)
 
 	server := http.Server{
 		Addr:         ":9090",
