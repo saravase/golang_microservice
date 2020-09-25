@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"time"
 )
 
@@ -43,10 +42,12 @@ func main() {
 
 	logger.Println("Received terminate signal, graceful timeout", sig)
 
+
 	terminateContext, contextErr := context.WithTimeout(context.Background(), 30*time.Second)
 	if contextErr != nil {
 		logger.Fatal(contextErr)
 	}
 
 	server.Shutdown(terminateContext)
+
 }
