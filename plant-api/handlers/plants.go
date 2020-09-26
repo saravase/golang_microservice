@@ -8,153 +8,162 @@ import (
 	"strconv"
 )
 
-type Plants struct {
+// Initialize struct type Plant with properties
+type Plant struct {
 	logger *log.Logger
 }
 
-func NewPlants(logger *log.Logger) *Plants {
-	return &Plants{
+// Create struct type Plant with properties
+func NewPlant(logger *log.Logger) *Plant {
+	return &Plant{
 		logger,
 	}
 }
 
 // ServeHTTP is the main entry point for the handler and statify http.Handler interface
-func (plants *Plants) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	//Handle the request for a list of plants
-	if req.Method == http.MethodGet {
-		plants.getPlants(res, req)
+func (plant *Plant) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+
+	//Handle the get Request to fetch list of plants data
+	if request.Method == http.MethodGet {
+		plant.getPlants(response, request)
 		return
 	}
 
-	//Handle the request to create the new plant
-	if req.Method == http.MethodPost {
-		plants.createPlant(res, req)
+	//Handle the post Request to insert new plant data into the datastore
+	if request.Method == http.MethodPost {
+		plant.createPlant(response, request)
 		return
 	}
 
-	//Handle the request to update the available plant based on id
-	if req.Method == http.MethodPut {
-
-		path := req.URL.Path
+	//Handle the put Request to update the available plant data into the datastore based on id
+	if request.Method == http.MethodPut {
+		plant.logger.Println(request.URL.Path)
+		path := request.URL.Path
 		reg := `/([0-9]+)`
 		regC := regexp.MustCompile(reg)
 		idMatchList := regC.FindAllStringSubmatch(path, -1)
 
+		plant.logger.Println(idMatchList)
 		if len(idMatchList) != 1 {
-			plants.logger.Printf("Request URL iDList : %#v", idMatchList)
-			http.Error(res, "Request URL have more than one id", http.StatusBadRequest)
+			plant.logger.Printf("Request URL IDList : %#v", idMatchList)
+			http.Error(response, "Request URL have more than one id", http.StatusBadRequest)
 			return
 		}
 
 		if len(idMatchList[0]) != 2 {
-			plants.logger.Printf("Request URL caturedIDList : %#v", idMatchList[0])
-			http.Error(res, "Regex found more id capture in the request URL", http.StatusBadRequest)
+			plant.logger.Printf("Request URL caturedIDList : %#v", idMatchList[0])
+			http.Error(response, "Regex found more id capture in the Request URL", http.StatusBadRequest)
 			return
 		}
 
 		idString := idMatchList[0][1]
 		id, err := strconv.Atoi(idString)
+		plant.logger.Printf("ID: %d", id)
 
 		if err != nil {
-			plants.logger.Printf("Unable to convert id to int %v", err)
-			http.Error(res, "Unable to convert id to int", http.StatusBadRequest)
+			plant.logger.Printf("Unable to convert id to int %v", err)
+			http.Error(response, "Unable to convert id to int", http.StatusBadRequest)
 			return
 		}
 
-		plants.updatePlant(id, res, req)
+		plant.updatePlant(id, response, request)
 
 	}
 
-	// Handle the request to delete the plant based on id
-	if req.Method == http.MethodDelete {
+	// Handle the deltet Request to delete the plant data into the datastore based on id
+	if request.Method == http.MethodDelete {
 
-		path := req.URL.Path
+		path := request.URL.Path
 		reg := `/([0-9]+)`
 		regC := regexp.MustCompile(reg)
 		idMatchList := regC.FindAllStringSubmatch(path, -1)
 
 		if len(idMatchList) != 1 {
-			plants.logger.Printf("Request URL iDList : %#v", idMatchList)
-			http.Error(res, "Request URL have more than one id", http.StatusBadRequest)
+			plant.logger.Printf("Request URL IDList : %#v", idMatchList)
+			http.Error(response, "Request URL have more than one id", http.StatusBadRequest)
 			return
 		}
 
 		if len(idMatchList[0]) != 2 {
-			plants.logger.Printf("Request URL caturedIDList : %#v", idMatchList[0])
-			http.Error(res, "Regex found more id capture in the request URL", http.StatusBadRequest)
+			plant.logger.Printf("Request URL caturedIDList : %#v", idMatchList[0])
+			http.Error(response, "Regex found more id capture in the Request URL", http.StatusBadRequest)
 			return
 		}
 
 		idString := idMatchList[0][1]
 		id, err := strconv.Atoi(idString)
-		plants.logger.Println("ID", id)
+		plant.logger.Println("ID", id)
 
 		if err != nil {
-			plants.logger.Printf("Unable to convert id to int %v", err)
-			http.Error(res, "Unable to convert id to int", http.StatusBadRequest)
+			plant.logger.Printf("Unable to convert id to int %v", err)
+			http.Error(response, "Unable to convert id to int", http.StatusBadRequest)
 			return
 		}
 
-		plants.deletePlant(id, res, req)
+		plant.deletePlant(id, response, request)
 	}
 
 	//Catch all
 	//If no method is statisfied return an error
-	res.WriteHeader(http.StatusMethodNotAllowed)
+	response.WriteHeader(http.StatusMethodNotAllowed)
 }
 
-//getPlants returns the plants from the datastore
-func (plants *Plants) getPlants(res http.ResponseWriter, req *http.Request) {
+//getPlants is used to fetch all the plants data from the datastore
+func (plant *Plant) getPlants(response http.ResponseWriter, request *http.Request) {
 	plantsList := data.GetAllPlants()
-	marshalError := plantsList.ToJSON(res)
+	marshalError := plantsList.ToJSON(response)
 
 	if marshalError != nil {
-		http.Error(res, "JSON marshaling failed.", http.StatusInternalServerError)
+		plant.logger.Printf("While, Marshaling the plant data. Reason : %s", marshalError)
+		http.Error(response, "JSON marshaling failed.", http.StatusInternalServerError)
 	}
 }
 
-//createPlants used to insert the new plant in the datastore
-func (plants *Plants) createPlant(res http.ResponseWriter, req *http.Request) {
+//createPlants used to insert the new plant data into the datastore
+func (plant *Plant) createPlant(response http.ResponseWriter, request *http.Request) {
 
-	plant := &data.Plant{}
-	marshalError := plant.FromJSON(req.Body)
+	plantData := &data.Plant{}
+	unMarshalError := plantData.FromJSON(request.Body)
 
-	if marshalError != nil {
-		http.Error(res, "JSON Unmarshaling failed.", http.StatusBadRequest)
+	if unMarshalError != nil {
+		plant.logger.Printf("While, UnMarshaling the plant data. Reason : %s", unMarshalError)
+		http.Error(response, "JSON Unmarshaling failed.", http.StatusBadRequest)
 	}
 
-	plants.logger.Printf("Plant : %#v", plant)
-	data.AddPlant(plant)
-	plantsList := &data.Plants{plant}
-	plantsList.ToJSON(res)
+	data.AddPlant(plantData)
+	plantsList := &data.Plants{plantData}
+	plantsList.ToJSON(response)
 }
 
-//updatePlant used to update the plant data in the datastore based on id.
-func (plants *Plants) updatePlant(id int, res http.ResponseWriter, req *http.Request) {
+//updatePlant used to update the plant data into the datastore based on id.
+func (plant *Plant) updatePlant(id int, response http.ResponseWriter, request *http.Request) {
 
-	plant := &data.Plant{}
-	marshalError := plant.FromJSON(req.Body)
+	plantData := &data.Plant{}
+	marshalError := plantData.FromJSON(request.Body)
 
 	if marshalError != nil {
-		http.Error(res, "JSON Unmarshaling failed.", http.StatusBadRequest)
+		plant.logger.Printf("While, Marshaling the plant data. Reason : %s", marshalError)
+		http.Error(response, "JSON Unmarshaling failed.", http.StatusBadRequest)
 	}
 
-	plants.logger.Printf("Plant : %#v", plant)
-	err := data.UpdatePlant(id, plant)
+	plant.logger.Printf("Plant : %#v", plantData)
+	updateError := data.UpdatePlant(id, plantData)
 
-	if err != nil {
-		http.Error(res, "Plant not found.", http.StatusNotFound)
+	if updateError != nil {
+		plant.logger.Printf("While, Update the plant data. Reason : %s", updateError)
+		http.Error(response, "Plant not found.", http.StatusNotFound)
 	}
-	res.WriteHeader(http.StatusOK)
+	response.WriteHeader(http.StatusOK)
 }
 
-//deletePlant used to delte the plant data in the datastore based on id.
-func (plants *Plants) deletePlant(id int, res http.ResponseWriter, req *http.Request) {
+//deletePlant used to delete the plant data into the datastore based on id.
+func (plant *Plant) deletePlant(id int, response http.ResponseWriter, request *http.Request) {
 
-	err := data.DeletePlant(id)
+	deleteError := data.DeletePlant(id)
 
-	if err != nil {
-		http.Error(res, "Plant not found.", http.StatusNotFound)
+	if deleteError != nil {
+		plant.logger.Printf("While, Delete the plant data. Reason : %s", deleteError)
+		http.Error(response, "Plant not found.", http.StatusNotFound)
 	}
-	res.WriteHeader(http.StatusOK)
+	response.WriteHeader(http.StatusOK)
 }

@@ -25,24 +25,24 @@ type Plants []*Plant
 // Initialize Excceptions
 var PlantNotFoundException = fmt.Errorf("Plant not found")
 
-// Serialize the data into JSON
+// Serialize the raw data format into JSON format
 func (plants *Plants) ToJSON(writer io.Writer) error {
 	encoder := json.NewEncoder(writer)
 	return encoder.Encode(plants)
 }
 
-// Deserialize the JSON into data
+// Deserialize the JSON format into raw data format
 func (plant *Plant) FromJSON(reader io.Reader) error {
 	decoder := json.NewDecoder(reader)
 	return decoder.Decode(plant)
 }
 
-// GetAllPlants is used to get the plants list
+// GetAllPlants is used to get the plants data list
 func GetAllPlants() Plants {
 	return plantsList
 }
 
-// AddPlant is used to add the plant in datastore
+// AddPlant is used to insert the newplant data into plants data list
 func AddPlant(plant *Plant) {
 	plant.ID = generatePlantNextID()
 	plantsList = append(plantsList, plant)
@@ -54,10 +54,11 @@ func generatePlantNextID() int {
 	return plant.ID + 1
 }
 
+// UpdatePlant is used to update the plant data into plants data list based on plant id
 func UpdatePlant(id int, plant *Plant) error {
-	updatePlant, position, err := getPlantByID(id)
+	updatePlant, position, notFoundError := getPlantPosition(id)
 
-	if err != nil {
+	if notFoundError != nil {
 		return PlantNotFoundException
 	}
 
@@ -66,10 +67,11 @@ func UpdatePlant(id int, plant *Plant) error {
 	return nil
 }
 
+// DeletePlant is used to delete the plant data into plants data list based on plant id
 func DeletePlant(id int) error {
-	_, position, err := getPlantByID(id)
+	_, position, notFoundError := getPlantPosition(id)
 
-	if err != nil {
+	if notFoundError != nil {
 		return PlantNotFoundException
 	}
 	plantsList = append(plantsList[:position], plantsList[position+1:]...)
@@ -77,7 +79,8 @@ func DeletePlant(id int) error {
 	return nil
 }
 
-func getPlantByID(id int) (*Plant, int, error) {
+// getPlantPosition is used to get the plant data and position from plants data list
+func getPlantPosition(id int) (*Plant, int, error) {
 	for position, plantData := range plantsList {
 		if plantData.ID == id {
 			return plantData, position, nil
@@ -86,7 +89,7 @@ func getPlantByID(id int) (*Plant, int, error) {
 	return nil, -1, PlantNotFoundException
 }
 
-// PlantsList datastore
+// Create temporary plant data
 var plantsList = []*Plant{
 	&Plant{
 		ID:          1,
