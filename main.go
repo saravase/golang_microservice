@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
-	"golang_microservice/plant-api/handlers"
 	"os/signal"
+
+	"github.com/gorilla/mux"
+
+	"github.com/saravase/golang_microservice/plant-api/handlers"
 
 	"log"
 	"net/http"
@@ -19,16 +22,36 @@ func main() {
 	// Initialize the plant struct properties
 	plantHandler := handlers.NewPlant(logger)
 
-	// NewServeMux allocates and returns a plant-api ServeMux.
-	serveMux := http.NewServeMux()
+	// NewRouter returns a new gorilla mux router instance
+	gorillaMux := mux.NewRouter()
 
-	// Handle registers the handler for the given pattern
-	serveMux.Handle("/plant/", plantHandler)
+	/*
+		Subrouter creates a subrouter for the route
+		It will test the inner routes only if the parent route matched
+	*/
+
+	// Get subrouter
+	getRouter := gorillaMux.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/plant", plantHandler.GetPlants)
+
+	// Post subrouter
+	postRouter := gorillaMux.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/plant", plantHandler.CreatePlant)
+	postRouter.Use(plantHandler.PlantValidationMiddleware)
+
+	// Put subrouter
+	putRouter := gorillaMux.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/plant/{id:[0-9]+}", plantHandler.UpdatePlant)
+	putRouter.Use(plantHandler.PlantValidationMiddleware)
+
+	// Delete subrouter
+	deleteRouter := gorillaMux.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/plant/{id:[0-9]+}", plantHandler.DeletePlant)
 
 	// Initialize the plant-api server properties
 	server := http.Server{
 		Addr:         ":9090",
-		Handler:      serveMux,
+		Handler:      gorillaMux,
 		IdleTimeout:  100 * time.Second,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
