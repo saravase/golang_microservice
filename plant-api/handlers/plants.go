@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -97,6 +98,18 @@ func (plant *Plant) PlantValidationMiddleware(next http.Handler) http.Handler {
 		if marshalError != nil {
 			plant.logger.Printf("While, Marshaling the plant data. Reason : %s", marshalError)
 			http.Error(response, "JSON Unmarshaling failed.", http.StatusBadRequest)
+			return
+		}
+
+		// validate the plant
+		validationError := plantData.Validate()
+		if validationError != nil {
+			plant.logger.Println("[ERROR] Validating plant ", validationError)
+			http.Error(
+				response,
+				fmt.Sprintf("Error validating plant. Reason : %s", validationError),
+				http.StatusBadRequest,
+			)
 			return
 		}
 

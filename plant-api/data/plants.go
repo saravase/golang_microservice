@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // Plant struct represent the plant  details
 type Plant struct {
 	ID          int     `json:"id"`
-	Name        string  `json:"name"`
+	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
 	Category    string  `json:"category"`
-	Price       float32 `json:"price"`
+	Price       float32 `json:"price" validate:"gt=0"`
 	CreatedAt   string  `json:"-"`
 	UpdatedAt   string  `json:"-"`
 	DeletedAt   string  `json:"-"`
@@ -35,6 +37,15 @@ func (plants *Plants) ToJSON(writer io.Writer) error {
 func (plant *Plant) FromJSON(reader io.Reader) error {
 	decoder := json.NewDecoder(reader)
 	return decoder.Decode(plant)
+}
+
+// Validate validate the plant struct
+func (plant *Plant) Validate() error {
+	//New returns a new instance of 'validate' with sane defaults
+	plantValidator := validator.New()
+
+	//Struct validates a structs exposed fields, and automatically validates nested structs
+	return plantValidator.Struct(plant)
 }
 
 // GetAllPlants is used to get the plants data list
